@@ -1,13 +1,14 @@
-mod compile;
-mod verify_scope;
-
 use std::fs;
 use std::path::PathBuf;
 
 use clap::Parser;
-use compile::compile;
 use parsers::parse;
 use std::io::Result;
+
+mod compile;
+mod initialization_typ;
+
+use common::{verify_scope::*, Policy};
 
 /// A compiler for Paralegal's Controlled Natural Language (CNL) policies.
 ///
@@ -36,19 +37,31 @@ struct Args {
     out: PathBuf,
 }
 
+fn check_environment(policy: &Policy) {
+    let mut env = Environment::new();
+    verify_definitions_scope(&policy.definitions, &mut env);
+    verify_scope(&policy.body, &mut env);
+}
+
 fn run(args: &Args) -> Result<()> {
     let policy = fs::read_to_string(&args.path).expect("Could not read policy file");
 
     let res = parse(&policy);
     match res {
-        Ok((_, policy)) => compile(
-            policy,
-            args.path
-                .file_name()
-                .map_or("<unnamed>", |n| n.to_str().unwrap()),
-            &args.out,
-            args.bin,
-        ),
+        Ok((_, mut policy)) => {
+            // Verify that variables in definitions & policy are properly scoped.
+            // If this fails, then the user made a mistake writing their policy.
+            check_environment(&policy);
+            let policy = optimizer::optimize(&mut policy);
+            compile::compile(
+                policy,
+                args.path
+                    .file_name()
+                    .map_or("<unnamed>", |n| n.to_str().unwrap()),
+                &args.out,
+                args.bin,
+            )
+        }
         Err(e) => match e {
             nom::Err::Incomplete(_) => {
                 panic!("Incomplete parse")

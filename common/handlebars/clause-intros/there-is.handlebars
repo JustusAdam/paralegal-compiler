@@ -1,0 +1,21 @@
+{{#if refers-to-definition}}
+    {{#if node-cluster}}
+        let Some(mut {{var}}) = {{var}}.clone() else { return false; };
+    {{/if}}
+{{else}}
+    {{#if node-cluster}}
+        {{intro}});
+        let Some(mut {{var}}) = {{var}} else { return false; };
+    {{else}}
+        let mut {{var}} = {{intro}};
+    {{/if}}
+{{/if}}
+
+{{#if node-cluster}}
+{{body}}
+{{else}}
+    {{var}}
+        .any(|{{var}}| {
+            {{body}}
+        })
+{{/if}}

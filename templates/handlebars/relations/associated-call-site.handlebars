@@ -1,4 +1,0 @@
-{
-let {{sink}}_callsite = ctx.inputs_of(ctx.associated_call_site({{sink}}));
-ctx.flows_to({{src}}, &{{sink}}_callsite, EdgeSelection::Data)
-}

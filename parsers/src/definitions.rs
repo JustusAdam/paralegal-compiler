@@ -1,14 +1,15 @@
+use crate::{
+    clause::l2_clauses, relations::l2_relations, shared::*, variable_intro::variable_intro, Res,
+};
+use common::ast::*;
 use nom::{
+    branch::alt,
     bytes::complete::tag,
-    character::complete::{space1, multispace0},
+    character::complete::{multispace0, space1},
+    combinator::opt,
     error::context,
     multi::many1,
-    sequence::{preceded, tuple, delimited}, branch::alt, combinator::opt,
-};
-
-use crate::{
-    Definition, Res, common::*, 
-    variable_intro::variable_intro, clause::l2_clauses, relations::l2_relations, DefinitionScope,
+    sequence::{delimited, preceded, tuple},
 };
 
 fn definition_scope(s: &str) -> Res<&str, DefinitionScope> {
@@ -31,22 +32,27 @@ fn definition(s: &str) -> Res<&str, Definition> {
         "definition",
         tuple((
             preceded(l1_bullet, variable),
-            delimited(tuple((tag("is each"), space1)), variable_intro, tag("where")),
+            delimited(
+                tuple((tag("is each"), space1)),
+                variable_intro,
+                tag("where"),
+            ),
             definition_scope,
-            preceded(colon, alt((l2_relations, l2_clauses)))
-        ))
+            preceded(colon, alt((l2_relations, l2_clauses))),
+        )),
     );
 
     let (remainder, (variable, declaration, scope, filter)) = combinator(s)?;
-    
+
     Ok((
         remainder,
-        Definition { 
+        Definition {
             variable,
             scope,
             declaration,
-            filter
-        }
+            filter: Some(filter),
+            lifted_from: None,
+        },
     ))
 }
 
@@ -55,7 +61,7 @@ pub fn parse_definitions(s: &str) -> Res<&str, Vec<Definition>> {
         "definitions",
         preceded(
             tuple((multispace0, tag("Definitions"), colon)),
-            many1(definition)
-        )
+            many1(definition),
+        ),
     )(s)
 }
