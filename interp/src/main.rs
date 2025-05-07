@@ -1,3 +1,5 @@
+//! An experimental interpreter for the Paralegal language. This is a work in progress and not yet functional.
+
 use anyhow::{ensure, Result};
 use clap::Parser;
 use common::{ast::*, *};
